@@ -187,6 +187,53 @@ const NpsReport = () => {
 
             </div>
 
+            {/* Closing the Loop: Acil Müdahale Panel */}
+            <div style={{ backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(255, 59, 48, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-symbols-outlined" style={{ color: '#ff3b30' }}>emergency_home</span>
+                    </div>
+                    <div>
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            Closing the Loop: Acil Müdahale Bekleyen Şikayetler
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Gerçek anketi Detractor (1-2) seviyesinde olan ve model sapması yüksek kayıtlar.</p>
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                    {reportData.gapAnalysis.filter(gap => gap.actualScore <= 2).length === 0 ? (
+                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '32px', border: '2px dashed var(--border-color)', borderRadius: '8px', color: 'var(--text-secondary)' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '32px', marginBottom: '8px', opacity: 0.5 }}>check_circle</span>
+                            <p>Şu an acil müdahale gerektiren (kritik düşük puanlı) bir anket sonucu bulunmuyor.</p>
+                        </div>
+                    ) : (
+                        reportData.gapAnalysis
+                            .filter(gap => gap.actualScore <= 2)
+                            .map((alert, idx) => (
+                                <div key={idx} style={{ border: '1px solid #ffcecc', borderRadius: '8px', padding: '16px', backgroundColor: '#fff9f9', position: 'relative', overflow: 'hidden' }}>
+                                    <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: '#ff3b30' }} />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span style={{ fontWeight: 'bold' }}>{alert.customerEmail}</span>
+                                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#ff3b30', background: 'rgba(255,59,48,0.1)', padding: '2px 8px', borderRadius: '12px' }}>PUAN: {alert.actualScore}</span>
+                                    </div>
+                                    <p style={{ fontSize: '13px', color: '#555', marginBottom: '12px' }}>
+                                        <strong>AI Tahmini:</strong> {alert.predictedScore} | <strong>Sapma:</strong> %{alert.deviation.toFixed(0)}
+                                    </p>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button className="btn-primary" style={{ flex: 1, padding: '6px', fontSize: '12px', backgroundColor: '#ff3b30' }}>
+                                            Hemen Ara / Geri Dön
+                                        </button>
+                                        <button className="btn-secondary" style={{ flex: 1, padding: '6px', fontSize: '12px' }}>
+                                            Kök Neden Gör
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                    )}
+                </div>
+            </div>
+
         </div>
     );
 };
