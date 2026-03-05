@@ -1008,3 +1008,187 @@ th {
   font-size: 40px !important;
   font-variation-settings: 'FILL' 0;
 }
+
+/* --- ACTIONABLE INSIGHTS DASHBOARD --- */
+.insights-container {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.insights-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.insights-header h2 {
+  font-size: 24px;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.badge-ai {
+  background: linear-gradient(135deg, #a685fa, var(--primary));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(63, 30, 174, 0.2);
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 24px;
+}
+
+.insight-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  position: relative;
+  overflow: hidden;
+}
+
+.insight-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.06);
+  border-color: transparent;
+}
+
+[data-theme='dark'] .insight-card:hover {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
+}
+
+.insight-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.insight-card-header .icon {
+  background-color: var(--bg-color);
+  color: var(--text-secondary);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.insight-card-header .icon.spark {
+  background: linear-gradient(135deg, rgba(166, 133, 250, 0.1), var(--primary-light));
+  color: var(--primary);
+}
+
+.insight-card-header h3 {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin: 0;
+}
+
+.insight-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.insight-value {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.insight-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.insight-trend.positive {
+  color: #34c759;
+}
+
+.insight-trend.negative {
+  color: #ff3b30;
+}
+
+.insight-trend .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* AI Suggestion Card Specifics */
+.ai-suggestion-card {
+  background: linear-gradient(to bottom right, var(--bg-secondary) 40%, rgba(63, 30, 174, 0.02) 100%);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .ai-suggestion-card {
+  background: linear-gradient(to bottom right, var(--bg-secondary) 40%, rgba(94, 61, 245, 0.05) 100%);
+}
+
+.ai-summary {
+  font-size: 18px;
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+.ai-summary strong {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.action-box {
+  margin-top: auto;
+  background-color: var(--bg-color);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px dashed var(--border-color);
+}
+
+.action-box p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.actionable-btn {
+  align-self: flex-start;
+  padding: 10px 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--text-main);
+  color: var(--bg-secondary);
+}
+
+.actionable-btn:hover {
+  background: var(--text-secondary);
+}
+
+.actionable-btn .material-symbols-outlined {
+  font-size: 18px;
+}

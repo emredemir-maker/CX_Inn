@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './index.css';
 import DataHub from './components/DataHub';
 import MailDesigner from './components/MailDesigner';
+import { listenToSurveyResponses } from './services/dashboardService';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -14,6 +15,7 @@ const navItems = [
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDark, setIsDark] = useState(false);
+  const [dashboardData, setDashboardData] = useState({ totalResponses: 0, averageErrorMargin: 0, criticalAlerts: [] });
 
   // Initialize theme based on system preference or saved state
   useEffect(() => {
@@ -27,6 +29,17 @@ function App() {
     } else {
       document.documentElement.setAttribute('data-theme', 'light');
     }
+  }, []);
+
+  // Anket verilerini ve AI Hata payını gerçek zamanlı dinleme
+  useEffect(() => {
+    // Projenin sabit appId'si
+    const appId = "default-app-id";
+    const unsubscribe = listenToSurveyResponses(appId, (newData) => {
+      setDashboardData(newData);
+    });
+
+    return () => unsubscribe(); // Component kapandığında dinlemeyi durdur
   }, []);
 
   const toggleTheme = () => {
@@ -99,38 +112,118 @@ function App() {
             <div className="dashboard-content animate-fade-in">
               <div className="welcome-widget">
                 <h1>Tekrar Hoşgeldin, Emre! 👋</h1>
-                <p>CX-Inn proje yönetimi panelindesin. Müşteri deneyimi ve NPS metriklerinde bugünkü genel durum özetini aşağıdan inceleyebilirsin.</p>
+                <p>CX-Inn proje yönetimi panelindesin. AI tabanlı algoritmalarımızın verileriniz üzerinden çıkardığı eyleme dönüştürülebilir içgörüleri (Actionable Insights) inceleyebilirsiniz.</p>
               </div>
 
-              <div className="card-grid">
-                <div className="stat-card">
-                  <div className="stat-header">
-                    Aktif Kampanyalar
-                    <div className="stat-icon">
-                      <span className="material-symbols-outlined">campaign</span>
-                    </div>
-                  </div>
-                  <div className="stat-value">12</div>
+              <div className="insights-container">
+                <div className="insights-header">
+                  <h2>Segmentasyon & Hedef Kitle Kılavuzu</h2>
+                  <span className="badge-ai">AI Predictive Targeting</span>
                 </div>
 
-                <div className="stat-card">
-                  <div className="stat-header">
-                    Ortalama NPS
-                    <div className="stat-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)', color: '#34c759' }}>
-                      <span className="material-symbols-outlined">sentiment_very_satisfied</span>
+                <div className="insights-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+
+                  {/* Acil Geri Kazanım (Detractors) Segmenti */}
+                  <div className="insight-card" style={{ borderTop: '4px solid #ff3b30' }}>
+                    <div className="insight-card-header">
+                      <span className="material-symbols-outlined icon" style={{ color: '#ff3b30', background: 'rgba(255, 59, 48, 0.1)' }}>healing</span>
+                      <h3>Acil Geri Kazanım Listesi (Detractors)</h3>
+                    </div>
+                    <div className="insight-body">
+                      {/* Gerçek entegrasyonda segmentCustomers()'dan dönen 'description' buraya gelir */}
+                      <p className="ai-summary">
+                        Bu segmentteki <strong>124 müşteri</strong> ağırlıklı olarak <strong>"Lojistik ve Kargo"</strong> süreçlerinden dolayı derin hayal kırıklığı (Tahmini CSAT &lt; 3) yaşıyor.
+                      </p>
+                      <div className="action-box">
+                        <p>Churn (Kayıp) riskini önlemek için bu gruba özel bir "Özür ve Kupon" kampanyası başlatın.</p>
+                        <button className="btn-primary actionable-btn" onClick={() => setActiveTab('mail-tasarimcisi')} style={{ background: '#ff3b30', color: '#fff' }}>
+                          <span className="material-symbols-outlined">group</span>
+                          Bu Gruba Kampanya Oluştur
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="stat-value">76.4</div>
+
+                  {/* Sadakat & Nurture Segmenti (Promoters/Passives) */}
+                  <div className="insight-card" style={{ borderTop: '4px solid #34c759' }}>
+                    <div className="insight-card-header">
+                      <span className="material-symbols-outlined icon" style={{ color: '#34c759', background: 'rgba(52, 199, 89, 0.1)' }}>diamond</span>
+                      <h3>Sadakat Programı Adayları (Promoters)</h3>
+                    </div>
+                    <div className="insight-body">
+                      {/* Gerçek entegrasyonda segmentCustomers()'dan dönen 'description' buraya gelir */}
+                      <p className="ai-summary">
+                        Son etkileşimlerinde <strong>(Tahmini CSAT 5)</strong> skor üreten <strong>312 müşteri</strong>. Memnuniyet oranı çok yüksek, marka elçisi potansiyeline sahipler.
+                      </p>
+                      <div className="action-box">
+                        <p>Bu gruptaki kişilere özel Up-sell paketleri veya referans (Refer-a-Friend) davetiyeleri gönderin.</p>
+                        <button className="btn-primary actionable-btn" onClick={() => setActiveTab('mail-tasarimcisi')} style={{ background: '#34c759', color: '#fff' }}>
+                          <span className="material-symbols-outlined">star_rate</span>
+                          Özel Fırsat Kampanyası Tasarla
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
 
-                <div className="stat-card">
-                  <div className="stat-header">
-                    Gönderilen E-postalar
-                    <div className="stat-icon" style={{ backgroundColor: 'rgba(255, 149, 0, 0.1)', color: '#ff9500' }}>
-                      <span className="material-symbols-outlined">mark_email_read</span>
+                {/* REAL-TIME MODEL STATUS & CRITICAL ALERTS */}
+                <div style={{ marginTop: '32px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+
+                  {/* Sol Taraf: AI Hata Payı */}
+                  <div className="insight-card" style={{ flex: '1', minWidth: '300px' }}>
+                    <div className="insight-card-header">
+                      <span className="material-symbols-outlined icon">analytics</span>
+                      <h3>AI Tahmin Modeli Hata Payı</h3>
+                    </div>
+                    <div className="insight-body" style={{ marginTop: '16px' }}>
+                      <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>Gerçekleşen Anket Yanıtları ({dashboardData.totalResponses}) üzerinden tahmin modelinin NPS/CSAT sapma oranı.</p>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
+                        <div className="insight-value" style={{ fontSize: '36px' }}>±{dashboardData.averageErrorMargin}</div>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: '600', marginBottom: '4px' }}>Puan</span>
+                      </div>
+                      <div style={{ marginTop: '16px', background: 'var(--bg-color)', padding: '12px', borderRadius: '8px', fontSize: '13px', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
+                        Model doğruluğu yüksek.
+                      </div>
                     </div>
                   </div>
-                  <div className="stat-value">8,402</div>
+
+                  {/* Sağ Taraf: Acil Müdahale Listesi */}
+                  <div className="insight-card" style={{ flex: '2', minWidth: '400px', borderLeft: '4px solid #ff3b30' }}>
+                    <div className="insight-card-header" style={{ justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span className="material-symbols-outlined icon" style={{ color: '#ff3b30', background: 'rgba(255, 59, 48, 0.1)' }}>warning</span>
+                        <h3 style={{ color: '#ff3b30' }}>Acil Müdahale Bekleyenler</h3>
+                      </div>
+                      <span style={{ background: '#ff3b30', color: 'white', padding: '2px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
+                        {dashboardData.criticalAlerts.length} Yeni
+                      </span>
+                    </div>
+
+                    <div style={{ marginTop: '16px', maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '8px' }}>
+                      {dashboardData.criticalAlerts.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '48px', opacity: 0.2 }}>sentiment_very_satisfied</span>
+                          <p style={{ marginTop: '8px' }}>Şu an için kritik düşük puanlı bir yanıt bulunmuyor.</p>
+                        </div>
+                      ) : (
+                        dashboardData.criticalAlerts.map(alert => (
+                          <div key={alert.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)' }}>
+                            <div>
+                              <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '4px' }}>{alert.customerEmail || 'Bilinmiyor'}</div>
+                              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Neden: "{alert.reason}"</div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                              <span style={{ background: 'rgba(255,59,48,0.1)', color: '#ff3b30', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>{alert.score}</span>
+                              <button style={{ color: 'var(--primary)', fontSize: '13px', fontWeight: '600', textDecoration: 'underline' }}>Aksiyona Geç</button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
