@@ -3,6 +3,8 @@ import './index.css';
 import DataHub from './components/DataHub';
 import MailDesigner from './components/MailDesigner';
 import { listenToSurveyResponses } from './services/dashboardService';
+import { db } from './lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -10,12 +12,14 @@ const navItems = [
   { id: 'iletisim-hub', label: 'İletişim Hub', icon: 'hub' },
   { id: 'mail-tasarimcisi', label: 'Mail Tasarımcısı', icon: 'mail' },
   { id: 'nps-raporu', label: 'NPS Raporu', icon: 'analytics' },
+  { id: 'guvenlik-etik', label: 'Güvenlik & Etik', icon: 'security' },
 ];
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDark, setIsDark] = useState(false);
   const [dashboardData, setDashboardData] = useState({ totalResponses: 0, averageErrorMargin: 0, criticalAlerts: [] });
+  const [governanceData, setGovernanceData] = useState(null);
 
   // Initialize theme based on system preference or saved state
   useEffect(() => {
@@ -40,6 +44,20 @@ function App() {
     });
 
     return () => unsubscribe(); // Component kapandığında dinlemeyi durdur
+  }, []);
+
+  // Governance & Etik raporlarını anlık dinleme
+  useEffect(() => {
+    const appId = "default-app-id";
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'governance_audit_latest');
+
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setGovernanceData(docSnap.data());
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const toggleTheme = () => {
@@ -256,7 +274,87 @@ function App() {
             <MailDesigner />
           )}
 
-          {activeTab !== 'dashboard' && activeTab !== 'veri-yukleme' && activeTab !== 'mail-tasarimcisi' && (
+          {activeTab === 'guvenlik-etik' && (
+            <div className="dashboard-content animate-fade-in">
+              <div className="welcome-widget" style={{ borderLeft: '4px solid #3f1eae', background: 'linear-gradient(90deg, var(--bg-color) 0%, rgba(63,30,174,0.05) 100%)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '42px', color: '#3f1eae' }}>security</span>
+                  <div>
+                    <h1 style={{ marginBottom: '4px' }}>AI Yönetişim ve Veri Güvenliği (Governance)</h1>
+                    <p style={{ color: 'var(--text-secondary)' }}>LLM-Judge model sapmalarını (Bias) izler ve Privacy Watch sistemi PII (Kişisel Veri) ihlallerini denetler.</p>
+                  </div>
+                </div>
+              </div>
+
+              {!governanceData ? (
+                <div style={{ textAlign: 'center', marginTop: '60px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '48px', opacity: 0.2, animation: 'spin 2s linear infinite' }}>sync</span>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: '16px' }}>Güvenlik verileri yükleniyor veya sistemde henüz denetim kaydı bulunmuyor...</p>
+                </div>
+              ) : (
+                <div className="insights-container" style={{ marginTop: '32px' }}>
+
+                  {/* Üst Metrikler */}
+                  <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+
+                    {/* Uyumluluk Puanı */}
+                    <div className="insight-card" style={{ flex: '1', minWidth: '250px', borderTop: governanceData.complianceScore < 95 ? '4px solid #ff3b30' : '4px solid #34c759' }}>
+                      <div className="insight-card-header">
+                        <span className="material-symbols-outlined icon" style={{ color: governanceData.complianceScore < 95 ? '#ff3b30' : '#34c759', background: governanceData.complianceScore < 95 ? 'rgba(255, 59, 48, 0.1)' : 'rgba(52, 199, 89, 0.1)' }}>verified_user</span>
+                        <h3>Sistem Uyumluluk Puanı</h3>
+                      </div>
+                      <div className="insight-body" style={{ marginTop: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                          <span style={{ fontSize: '42px', fontWeight: 'bold', color: governanceData.complianceScore < 95 ? '#ff3b30' : 'var(--text-main)' }}>%{governanceData.complianceScore}</span>
+                        </div>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                          Toplam <strong>{governanceData.totalItemsAudited}</strong> analiz denetlendi.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Maskelenen Veri (PII) */}
+                    <div className="insight-card" style={{ flex: '1', minWidth: '250px' }}>
+                      <div className="insight-card-header">
+                        <span className="material-symbols-outlined icon">visibility_off</span>
+                        <h3>Privacy Watch (PII Koruması)</h3>
+                      </div>
+                      <div className="insight-body" style={{ marginTop: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                          <span style={{ fontSize: '42px', fontWeight: 'bold' }}>{governanceData.piiWatch.maskedItems}</span>
+                          <span style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: '600' }}>Veri Maskelendi</span>
+                        </div>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                          <strong>{governanceData.piiWatch.violationsFound}</strong> farklı dökümanda kişisel veri (TC, Tel vb.) tespit edildi ve sansürlendi.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* LLM Bias Tespiti */}
+                    <div className="insight-card" style={{ flex: '1', minWidth: '250px' }}>
+                      <div className="insight-card-header">
+                        <span className="material-symbols-outlined icon" style={{ color: governanceData.llmJudge.biasDetected > 5 ? '#ff9500' : 'var(--primary)', background: governanceData.llmJudge.biasDetected > 5 ? 'rgba(255, 149, 0, 0.1)' : 'rgba(63, 30, 174, 0.1)' }}>gavel</span>
+                        <h3>LLM-Judge Yanlılık (Bias) Kontrolü</h3>
+                      </div>
+                      <div className="insight-body" style={{ marginTop: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                          <span style={{ fontSize: '42px', fontWeight: 'bold', color: governanceData.llmJudge.biasDetected > 5 ? '#ff9500' : 'var(--text-main)' }}>{governanceData.llmJudge.biasDetected}</span>
+                          <span style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: '600' }}>Vaka Tespit Edildi</span>
+                        </div>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                          Yapay zekanın tutarsız CSAT/Sentiment verdiği {governanceData.llmJudge.biasDetected} veri noktası tespit edildi. AI Doğruluğu: <strong>%{governanceData.llmJudge.accuracyScore}</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab !== 'dashboard' && activeTab !== 'veri-yukleme' && activeTab !== 'mail-tasarimcisi' && activeTab !== 'guvenlik-etik' && (
             <div className="page-placeholder animate-fade-in">
               <div style={{ textAlign: 'center', marginTop: '120px', color: 'var(--text-secondary)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '72px', opacity: 0.3, marginBottom: '24px' }}>
