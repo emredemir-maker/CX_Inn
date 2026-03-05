@@ -106,7 +106,7 @@ export const runGovernanceAudit = async (appId, analyzedInteractions) => {
 
     // Firestore'a kaydet
     try {
-        const auditRef = doc(db, 'artifacts', appId, 'public', 'data', 'governance_audit_latest');
+        const auditRef = doc(db, 'artifacts', appId, 'public', 'governance_audit_latest');
         await setDoc(auditRef, {
             ...auditReport,
             savedAt: serverTimestamp()

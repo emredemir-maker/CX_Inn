@@ -184,7 +184,7 @@ export const analyzeAndGroupInteractions = (interactions) => {
  */
 export const saveAnalyzedDataToFirestore = async (appId, analyzedResult) => {
     try {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'analyzed_interactions');
+        const docRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
 
         // Müşterilerin asıl iletişim logları + onlara yapıştırılmış ABSA/CSAT etiketleri
         // Cihaz şişmesin diye 'impactAnalysis' gibi zeka çıktılarını yukarı çıkarıyoruz

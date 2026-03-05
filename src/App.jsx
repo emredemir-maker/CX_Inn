@@ -49,7 +49,7 @@ function App() {
   // Governance & Etik raporlarını anlık dinleme
   useEffect(() => {
     const appId = "default-app-id";
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'governance_audit_latest');
+    const docRef = doc(db, 'artifacts', appId, 'public', 'governance_audit_latest');
 
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
