@@ -171,21 +171,29 @@ function App() {
                 <div style={{ marginTop: '32px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
 
                   {/* Sol Taraf: AI Hata Payı */}
-                  <div className="insight-card" style={{ flex: '1', minWidth: '300px' }}>
+                  <div className="insight-card" style={{ flex: '1', minWidth: '300px', borderTop: dashboardData.requiresSystemCalibration ? '4px solid #ff9500' : 'none' }}>
                     <div className="insight-card-header">
-                      <span className="material-symbols-outlined icon">analytics</span>
-                      <h3>AI Tahmin Modeli Hata Payı</h3>
+                      <span className="material-symbols-outlined icon" style={{ color: dashboardData.requiresSystemCalibration ? '#ff9500' : 'inherit', background: dashboardData.requiresSystemCalibration ? 'rgba(255, 149, 0, 0.1)' : 'var(--bg-color)' }}>analytics</span>
+                      <h3 style={{ color: dashboardData.requiresSystemCalibration ? '#ff9500' : 'inherit' }}>AI Tahmin Modeli Hata Payı</h3>
                     </div>
                     <div className="insight-body" style={{ marginTop: '16px' }}>
                       <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>Gerçekleşen Anket Yanıtları ({dashboardData.totalResponses}) üzerinden tahmin modelinin NPS/CSAT sapma oranı.</p>
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
-                        <div className="insight-value" style={{ fontSize: '36px' }}>±{dashboardData.averageErrorMargin}</div>
+                        <div className="insight-value" style={{ fontSize: '36px', color: dashboardData.requiresSystemCalibration ? '#ff9500' : 'inherit' }}>±{dashboardData.averageErrorMargin}</div>
                         <span style={{ color: 'var(--text-secondary)', fontWeight: '600', marginBottom: '4px' }}>Puan</span>
                       </div>
-                      <div style={{ marginTop: '16px', background: 'var(--bg-color)', padding: '12px', borderRadius: '8px', fontSize: '13px', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
-                        Model doğruluğu yüksek.
-                      </div>
+
+                      {dashboardData.requiresSystemCalibration ? (
+                        <div style={{ marginTop: '16px', background: 'rgba(255, 149, 0, 0.1)', padding: '12px', borderRadius: '8px', fontSize: '13px', color: '#ff9500', fontWeight: '600', display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: '1.4' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '18px', marginTop: '2px' }}>warning</span>
+                          Dikkat: Sapma %20'yi aştı. Modelin acilen yeniden eğitilmesi (Kalibrasyon) önerilir.
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: '16px', background: 'var(--bg-color)', padding: '12px', borderRadius: '8px', fontSize: '13px', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
+                          Model doğruluğu (%80 üzeri) yüksek seyrediyor.
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -193,8 +201,8 @@ function App() {
                   <div className="insight-card" style={{ flex: '2', minWidth: '400px', borderLeft: '4px solid #ff3b30' }}>
                     <div className="insight-card-header" style={{ justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span className="material-symbols-outlined icon" style={{ color: '#ff3b30', background: 'rgba(255, 59, 48, 0.1)' }}>warning</span>
-                        <h3 style={{ color: '#ff3b30' }}>Acil Müdahale Bekleyenler</h3>
+                        <span className="material-symbols-outlined icon" style={{ color: '#ff3b30', background: 'rgba(255, 59, 48, 0.1)' }}>healing</span>
+                        <h3 style={{ color: '#ff3b30' }}>Closed Loop: Acil Kurtarma</h3>
                       </div>
                       <span style={{ background: '#ff3b30', color: 'white', padding: '2px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
                         {dashboardData.criticalAlerts.length} Yeni
@@ -204,19 +212,30 @@ function App() {
                     <div style={{ marginTop: '16px', maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '8px' }}>
                       {dashboardData.criticalAlerts.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '48px', opacity: 0.2 }}>sentiment_very_satisfied</span>
-                          <p style={{ marginTop: '8px' }}>Şu an için kritik düşük puanlı bir yanıt bulunmuyor.</p>
+                          <span className="material-symbols-outlined" style={{ fontSize: '48px', opacity: 0.2 }}>task_alt</span>
+                          <p style={{ marginTop: '8px' }}>Tüm süreçler kapatıldı. Kritik bir vaka yok.</p>
                         </div>
                       ) : (
                         dashboardData.criticalAlerts.map(alert => (
-                          <div key={alert.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)' }}>
-                            <div>
-                              <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '4px' }}>{alert.customerEmail || 'Bilinmiyor'}</div>
-                              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Neden: "{alert.reason}"</div>
+                          <div key={alert.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', gap: '16px' }}>
+                            <div style={{ flex: '1' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '14px' }}>{alert.customerEmail || 'Müşteri Bilgisi Yok'}</div>
+                                <span style={{ fontSize: '11px', background: 'rgba(255,59,48,0.1)', color: '#ff3b30', padding: '2px 6px', borderRadius: '4px', fontWeight: '600' }}>{alert.score}</span>
+                              </div>
+                              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '8px' }}>"{alert.reason}"</div>
+                              {alert.recommendedAction && (
+                                <div style={{ fontSize: '12px', color: '#ff9500', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>call_log</span>
+                                  {alert.recommendedAction}
+                                </div>
+                              )}
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                              <span style={{ background: 'rgba(255,59,48,0.1)', color: '#ff3b30', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>{alert.score}</span>
-                              <button style={{ color: 'var(--primary)', fontSize: '13px', fontWeight: '600', textDecoration: 'underline' }}>Aksiyona Geç</button>
+                            <div>
+                              <button style={{ background: '#ff3b30', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
+                                Kapat
+                              </button>
                             </div>
                           </div>
                         ))

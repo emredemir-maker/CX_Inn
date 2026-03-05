@@ -160,6 +160,8 @@ const simulateEmailSending = async (campaignRef, queuedEmails, totalCount) => {
     console.log(`[Campaign] Gönderim süreci tamamlandı. Başarılı: ${sentCount}, Hatalı: ${failedCount}`);
 };
 
+import { processFeedbackLoop } from './feedbackLoopService';
+
 /**
  * 4. Gelen Anket Yanıtlarını İlişkilendirme Fonksiyonu
  * Kullanıcı maildeki butona tıkladığında URL'de ?trackingId=XYZ olacaktır.
@@ -184,6 +186,10 @@ export const linkSurveyResponseToCustomer = async (appId, trackingId, surveyResu
             surveyResponse: surveyResult, // { score: 9, csat: 4, comment: 'Teşekkürler', responseTime: '...' }
             respondedAt: serverTimestamp()
         });
+
+        // --- Pisano & Qualtrics usulü CLOSED LOOP STATS & CALIBRATION Süreci ---
+        await processFeedbackLoop(appId, trackingId, deliveryData, surveyResult);
+        // -------------------------------------------------------------------------
 
         console.log(`[Campaign] TrackingID: ${trackingId} için anket yanıtı başarıyla ilişkilendirildi. Müşteri: ${deliveryData.customerEmail}`);
 
