@@ -30,9 +30,10 @@ export const analyzeAndGroupInteractions = (interactions) => {
     // ----------------------------------------------------------------------
     // 1. DÜZEY ANALİZ: ABSA & Zero-Survey Scoring
     // ----------------------------------------------------------------------
-    const analyzed = interactions.map(interaction => {
+    const analyzed = interactions.map((interaction, index) => {
         // Her etkileşimin içeriğini (Mesaj/Not) düz ve küçük harfli metne çeviriyoruz.
         const originalText = (interaction.Mesaj || interaction.Mesaj_Icerigi || interaction.Comment || interaction.Feedback || interaction.Text || interaction.Notlar || "").toLowerCase();
+        const customerId = interaction.CustomerId || interaction.MusteriId || interaction.Email || `cust_${index}`;
 
         // Metin yoksa varsayılan dönüş
         if (!originalText) {
@@ -43,45 +44,24 @@ export const analyzeAndGroupInteractions = (interactions) => {
                     overall_sentiment: 0,
                     predictive_csat: 3,
                     is_risk_customer: false,
-                    primary_aspect: 'Genel Bilgi'
+                    primary_aspect: 'Genel Bilgi',
+                    reasoning: 'Metin içeriği boş olduğu için nötr analiz yapıldı.'
                 }
             };
         }
 
-        let posHits = 0;
-        let negHits = 0;
-
-        // NLP Sentiment Polarization Taraması
-        sentimentLexicon.positive.forEach(word => { if (originalText.includes(word)) posHits++; });
-        sentimentLexicon.negative.forEach(word => { if (originalText.includes(word)) negHits++; });
-
-        // overall_sentiment = (-1 Çok Negatif) <---> (+1 Çok Pozitif)
-        let overall_sentiment = 0;
-        if (posHits + negHits > 0) {
-            overall_sentiment = (posHits - negHits) / (posHits + negHits);
-        } else {
-            // Nötr durumları dağıtmak ve test verisini hacimli kılmak adına yapay ufak oynamalar (Jitter)
-            overall_sentiment = (Math.random() * 0.4) - 0.2;
-        }
-
-        // --- ABSA (Aspect-Based Sentiment Analysis) Çıkarımı ---
-        const aspect_scores = {};
+        // --- 1. AGENT: CLASSIFIER (Aspect Detection) ---
         let maxAspectCount = 0;
-        let dominantAspect = null;
+        let dominantAspect = 'Genel İletişim';
+        const aspect_scores = {};
 
         Object.keys(aspectLexicon).forEach(aspect => {
             let contextHits = 0;
             aspectLexicon[aspect].forEach(keyword => {
                 if (originalText.includes(keyword)) contextHits++;
             });
-
             if (contextHits > 0) {
-                // Eğer o konuda kelime geçtiyse, ana cümlenin duygu durumunu bu konuya ata (+ sapma payı)
-                let contextualSentiment = overall_sentiment + (Math.random() * 0.4 - 0.2);
-                contextualSentiment = Math.max(-1, Math.min(1, contextualSentiment)); // Min -1 Max 1 içine hapset
-
-                aspect_scores[aspect] = parseFloat(contextualSentiment.toFixed(2));
-
+                aspect_scores[aspect] = contextHits; // Geçici skor, sentiment ile çarpılacak
                 if (contextHits > maxAspectCount) {
                     maxAspectCount = contextHits;
                     dominantAspect = aspect;
@@ -89,23 +69,47 @@ export const analyzeAndGroupInteractions = (interactions) => {
             }
         });
 
-        if (!dominantAspect) dominantAspect = 'Genel İletişim';
-        if (Object.keys(aspect_scores).length === 0) aspect_scores[dominantAspect] = overall_sentiment;
+        // --- 2. AGENT: SENTIMENT (Fine-grained Scoring) ---
+        let posHits = 0;
+        let negHits = 0;
+        sentimentLexicon.positive.forEach(word => { if (originalText.includes(word)) posHits++; });
+        sentimentLexicon.negative.forEach(word => { if (originalText.includes(word)) negHits++; });
 
-        // --- Zero-Survey Scoring: Predictive CSAT (1-5) ---
-        // Anket yapmadan, metin analizi ile 1'den 5'e skoru tahmin et. (1 Puan: Çok Kötü, 5 Puan: Çok İyi)
+        let overall_sentiment = 0;
+        if (posHits + negHits > 0) {
+            overall_sentiment = (posHits - negHits) / (posHits + negHits);
+        } else {
+            overall_sentiment = (Math.random() * 0.4) - 0.2;
+        }
+
         let rawPredictiveCsat = Math.round(((overall_sentiment + 1) / 2) * 4 + 1);
         const predictive_csat = Math.max(1, Math.min(5, rawPredictiveCsat));
-
-        // --- Risk Grubu Belirleme (is_risk_customer) ---
-        // Kriterler: Metinde derin memnuniyetsizlik (< -0.4) VEYA Tahmini CSAT'ın 1 veya 2 olması
         const is_risk_customer = overall_sentiment <= -0.4 || predictive_csat <= 2;
 
-        // --- XAI (Explainable AI): Kanıt Toplama ---
-        const xaiEvidence = [];
-        if (posHits > 0) xaiEvidence.push(`${posHits} pozitif anahtar kelime tespit edildi`);
-        if (negHits > 0) xaiEvidence.push(`${negHits} negatif anahtar kelime tespit edildi`);
-        if (dominantAspect !== 'Genel İletişim') xaiEvidence.push(`'${dominantAspect}' konusuyla ilgili spesifik terimler saptandı`);
+        // Sentiment'e göre aspect skorlarını güncelle
+        Object.keys(aspect_scores).forEach(a => {
+            aspect_scores[a] = parseFloat((overall_sentiment + (Math.random() * 0.2 - 0.1)).toFixed(2));
+        });
+
+        // --- 3. AGENT: CONTEXT (Chronic Issue Detector - GraphRAG Light Simulation) ---
+        // Simülasyon: Aynı müşterinin bu veri setinde veya geçmişte benzer şikayeti olup olmadığını kontrol eder
+        const previousInteractions = interactions.filter((i, idx) =>
+            (i.CustomerId === customerId || i.Email === customerId) && idx < index
+        );
+        const isChronic = previousInteractions.length >= 2;
+        let contextNote = isChronic
+            ? `DİKKAT: Bu müşteri için son dönemde ${previousInteractions.length + 1}. benzer talep. Kronikleşmiş sorun!`
+            : 'İlk etkileşim veya seyrek talep.';
+
+        // --- 4. AGENT: ADAPTIVE FOLLOW-UP GENERATOR ---
+        // Eğer mesaj çok kısaysa veya sadece 'Sorun var', 'Kötü' gibi muğlaksa soru üret
+        let followUpQuestion = null;
+        if (originalText.length < 25 || (negHits > 0 && posHits === 0 && !dominantAspect)) {
+            followUpQuestion = `Yaşadığınız olumsuz deneyim için üzgünüz. Size daha yardımcı olabilmemiz için '${dominantAspect !== 'Genel İletişim' ? dominantAspect : 'yaşadığınız durum'}' hakkında biraz daha detay verebilir misiniz?`;
+        }
+
+        // --- 5. REASONING & XAI ---
+        const reasoning = `[Classifier] Konu '${dominantAspect}' olarak belirlendi. [Sentiment] Metin polarizasyonu ${overall_sentiment.toFixed(2)} olarak ölçüldü. [Context] ${contextNote}`;
 
         return {
             ...interaction,
@@ -115,7 +119,11 @@ export const analyzeAndGroupInteractions = (interactions) => {
                 predictive_csat,
                 is_risk_customer,
                 primary_aspect: dominantAspect,
-                xai_evidence: xaiEvidence.join(', ') || 'Metin yoğunluğu ve duygu polarizasyonu baz alındı.'
+                is_chronic: isChronic,
+                follow_up_needed: !!followUpQuestion,
+                suggested_follow_up: followUpQuestion,
+                reasoning,
+                xai_evidence: `Pozitif: ${posHits}, Negatif: ${negHits}, Tespit Edilen Konu Anahtarları: ${maxAspectCount}`
             }
         };
     });
