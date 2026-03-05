@@ -5,8 +5,10 @@ import MailDesigner from './components/MailDesigner';
 import CommunicationHub from './components/CommunicationHub';
 import NpsReport from './components/NpsReport';
 import { listenToSurveyResponses } from './services/dashboardService';
+import { segmentCustomers } from './services/dataAnalysisService';
+import { startCampaignDistribution } from './services/campaignService';
 import { db } from './lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, limit, getDocs } from 'firebase/firestore';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -22,6 +24,9 @@ function App() {
   const [isDark, setIsDark] = useState(false);
   const [dashboardData, setDashboardData] = useState({ totalResponses: 0, averageErrorMargin: 0, criticalAlerts: [] });
   const [governanceData, setGovernanceData] = useState(null);
+  const [segments, setSegments] = useState(null);
+  const [latestTemplateId, setLatestTemplateId] = useState(null);
+  const [isDispatching, setIsDispatching] = useState(false);
 
   // Initialize theme based on system preference or saved state
   useEffect(() => {
@@ -61,6 +66,59 @@ function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Analiz edilmiş etkileşimleri dinle ve anlık Segmentleri oluştur
+  useEffect(() => {
+    const appId = "default-app-id";
+    const docRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
+
+    const unsubscribe = onSnapshot(docRef, (snap) => {
+      if (snap.exists() && snap.data().interactions) {
+        const segmented = segmentCustomers(snap.data().interactions);
+        setSegments(segmented);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // En son kaydedilen şablonu bul (Kampanya gönderimi için)
+  useEffect(() => {
+    const fetchLatestTemplate = async () => {
+      const appId = "default-app-id";
+      const q = query(collection(db, 'artifacts', appId, 'public', 'templates'), limit(1));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setLatestTemplateId(snap.docs[0].id);
+      }
+    };
+    fetchLatestTemplate();
+  }, [activeTab]);
+
+  const handleDispatchCampaign = async (segmentType) => {
+    if (!segments || !segments[segmentType] || segments[segmentType].customers.length === 0) {
+      alert("Bu segmentte gönderilecek müşteri bulunmuyor.");
+      return;
+    }
+
+    if (!latestTemplateId) {
+      alert("Önce 'Mail Tasarımcısı' üzerinden bir şablon oluşturup kaydetmelisiniz.");
+      setActiveTab('mail-tasarimcisi');
+      return;
+    }
+
+    setIsDispatching(true);
+    try {
+      const appId = "default-app-id";
+      const campaignName = `${segments[segmentType].title} - ${new Date().toLocaleDateString()}`;
+      await startCampaignDistribution(appId, campaignName, latestTemplateId, segments[segmentType].customers);
+      alert(`${segments[segmentType].title} için kampanya başarıyla başlatıldı! Tracking ID'ler oluşturuldu.`);
+    } catch (error) {
+      alert("Kampanya başlatılırken hata oluştu.");
+    } finally {
+      setIsDispatching(false);
+    }
+  };
 
   const toggleTheme = () => {
     const newTheme = !isDark ? 'dark' : 'light';
@@ -147,18 +205,22 @@ function App() {
                   <div className="insight-card" style={{ borderTop: '4px solid #ff3b30' }}>
                     <div className="insight-card-header">
                       <span className="material-symbols-outlined icon" style={{ color: '#ff3b30', background: 'rgba(255, 59, 48, 0.1)' }}>healing</span>
-                      <h3>Acil Geri Kazanım Listesi (Detractors)</h3>
+                      <h3>{segments?.detractors?.title || 'Acil Geri Kazanım Listesi'}</h3>
                     </div>
                     <div className="insight-body">
-                      {/* Gerçek entegrasyonda segmentCustomers()'dan dönen 'description' buraya gelir */}
                       <p className="ai-summary">
-                        Bu segmentteki <strong>124 müşteri</strong> ağırlıklı olarak <strong>"Lojistik ve Kargo"</strong> süreçlerinden dolayı derin hayal kırıklığı (Tahmini CSAT &lt; 3) yaşıyor.
+                        {segments?.detractors?.description || 'Yüklenen veriler analiz ediliyor...'}
                       </p>
                       <div className="action-box">
                         <p>Churn (Kayıp) riskini önlemek için bu gruba özel bir "Özür ve Kupon" kampanyası başlatın.</p>
-                        <button className="btn-primary actionable-btn" onClick={() => setActiveTab('mail-tasarimcisi')} style={{ background: '#ff3b30', color: '#fff' }}>
+                        <button
+                          className="btn-primary actionable-btn"
+                          disabled={isDispatching || !segments?.detractors?.customers?.length}
+                          onClick={() => handleDispatchCampaign('detractors')}
+                          style={{ background: '#ff3b30', color: '#fff' }}
+                        >
                           <span className="material-symbols-outlined">group</span>
-                          Bu Gruba Kampanya Oluştur
+                          {isDispatching ? 'Gönderiliyor...' : 'Bu Gruba Kampanyayı Başlat'}
                         </button>
                       </div>
                     </div>
@@ -168,18 +230,22 @@ function App() {
                   <div className="insight-card" style={{ borderTop: '4px solid #34c759' }}>
                     <div className="insight-card-header">
                       <span className="material-symbols-outlined icon" style={{ color: '#34c759', background: 'rgba(52, 199, 89, 0.1)' }}>diamond</span>
-                      <h3>Sadakat Programı Adayları (Promoters)</h3>
+                      <h3>{segments?.promoters?.title || 'Sadakat Programı Adayları'}</h3>
                     </div>
                     <div className="insight-body">
-                      {/* Gerçek entegrasyonda segmentCustomers()'dan dönen 'description' buraya gelir */}
                       <p className="ai-summary">
-                        Son etkileşimlerinde <strong>(Tahmini CSAT 5)</strong> skor üreten <strong>312 müşteri</strong>. Memnuniyet oranı çok yüksek, marka elçisi potansiyeline sahipler.
+                        {segments?.promoters?.description || 'Promoter segmenti verileri hesaplanıyor...'}
                       </p>
                       <div className="action-box">
                         <p>Bu gruptaki kişilere özel Up-sell paketleri veya referans (Refer-a-Friend) davetiyeleri gönderin.</p>
-                        <button className="btn-primary actionable-btn" onClick={() => setActiveTab('mail-tasarimcisi')} style={{ background: '#34c759', color: '#fff' }}>
+                        <button
+                          className="btn-primary actionable-btn"
+                          disabled={isDispatching || !segments?.promoters?.customers?.length}
+                          onClick={() => handleDispatchCampaign('promoters')}
+                          style={{ background: '#34c759', color: '#fff' }}
+                        >
                           <span className="material-symbols-outlined">star_rate</span>
-                          Özel Fırsat Kampanyası Tasarla
+                          {isDispatching ? 'Gönderiliyor...' : 'Özel Fırsat Kampanyası Gönder'}
                         </button>
                       </div>
                     </div>
