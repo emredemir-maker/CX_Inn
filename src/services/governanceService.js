@@ -12,6 +12,9 @@ export const piiRegexList = [
     { type: 'E-posta', regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g }
 ];
 
+export const unethicalContentRegex = /\b(küfür1|küfür2|nefretsöylemi|hakaret|uygunsuz)\b/gi; // Örnek placeholder listesi
+
+
 export const logSecurityViolation = async (appId, ruleType, offendingText) => {
     try {
         const auditRef = doc(db, 'artifacts', appId, 'public', 'governance_audit_latest');
@@ -32,6 +35,7 @@ export const runGovernanceAudit = async (appId, analyzedInteractions) => {
     let biasFlagCount = 0;
     let piiViolationCount = 0;
     let maskedDataCount = 0;
+    let ethicsViolationCount = 0;
 
     // Güvenlik Raporu Veri Yapısı
     const auditReport = {
@@ -40,6 +44,10 @@ export const runGovernanceAudit = async (appId, analyzedInteractions) => {
         piiWatch: {
             violationsFound: 0,
             maskedItems: 0,
+            details: []
+        },
+        ethicsWatch: {
+            violationsFound: 0,
             details: []
         },
         llmJudge: {
@@ -61,11 +69,8 @@ export const runGovernanceAudit = async (appId, analyzedInteractions) => {
         piiRegexList.forEach(rule => {
             const matches = rawText.match(rule.regex);
             if (matches && matches.length > 0) {
-                // Eğer veri içerisinde PII varsa
                 itemHasPii = true;
                 maskedDataCount += matches.length;
-
-                // Örnek log tutma (Hashlenmiş vizyon, ancak UI'a örnek göstereceğiz)
                 auditReport.piiWatch.details.push({
                     recordId: item.id || `rec_${index}`,
                     ruleMatched: rule.type,
@@ -74,16 +79,21 @@ export const runGovernanceAudit = async (appId, analyzedInteractions) => {
             }
         });
 
-        if (itemHasPii) {
-            piiViolationCount++;
+        if (itemHasPii) piiViolationCount++;
+
+        // --- B. ETHICS WATCH (ETİK DIŞI İÇERİK) ---
+        const ethicsMatches = rawText.match(unethicalContentRegex);
+        if (ethicsMatches && ethicsMatches.length > 0) {
+            ethicsViolationCount++;
+            auditReport.ethicsWatch.details.push({
+                recordId: item.id || `rec_${index}`,
+                found: ethicsMatches.join(', ')
+            });
         }
 
-        // --- B. LLM-JUDGE (BIAS & DOĞRULUK ÖRNEKLEMESİ) ---
-        // Simülasyon: Çok uç skorların (Örn: Duygu skoru > 0.9 ama 'Kritik Risk' verilmişse) mantıksal uyumsuzluğu Bias / Halüsinasyon kabul edilir.
+        // --- C. LLM-JUDGE (BIAS & DOĞRULUK ÖRNEKLEMESİ) ---
         if (item.aiAnalysis) {
             const { overall_sentiment, is_risk_customer, predictive_csat } = item.aiAnalysis;
-
-            // Eğer model Sentiment'i çok pozitif (>0.5) ama hala müşteriyi "is_risk_customer" yapmışsa (veya CSAT 1-2 ise), Bias/Hallucination cezası kes
             const isBiased = (overall_sentiment > 0.5 && is_risk_customer) ||
                 (overall_sentiment < -0.5 && predictive_csat > 4);
 
@@ -102,14 +112,14 @@ export const runGovernanceAudit = async (appId, analyzedInteractions) => {
     // Hesaplamalar
     auditReport.piiWatch.violationsFound = piiViolationCount;
     auditReport.piiWatch.maskedItems = maskedDataCount;
+    auditReport.ethicsWatch.violationsFound = ethicsViolationCount;
     auditReport.llmJudge.biasDetected = biasFlagCount;
 
-    // Uyumluluk (Compliance) Puanı: PII ihlali % ağırlığı yüksek, Bias ağırlığı orta
-    // (Toplam Data üzerindeki PII oranı ve Bias oranına göre 100 üzerinden kırpma)
-    const piiPenalty = (piiViolationCount / totalInteractions) * 15; // Max 15 puan kır
-    const biasPenalty = (biasFlagCount / totalInteractions) * 10; // Max 10 puan kır
+    const piiPenalty = (piiViolationCount / totalInteractions) * 15;
+    const biasPenalty = (biasFlagCount / totalInteractions) * 10;
+    const ethicsPenalty = (ethicsViolationCount / totalInteractions) * 20;
 
-    let baseCompliance = 100 - (piiPenalty + biasPenalty);
+    let baseCompliance = 100 - (piiPenalty + biasPenalty + ethicsPenalty);
 
     // Gerçekçi tutmak için ufak bir dalgalanma (Minimum 85)
     auditReport.complianceScore = parseFloat(Math.max(85, baseCompliance).toFixed(2));
