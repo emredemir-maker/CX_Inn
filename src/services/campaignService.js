@@ -22,7 +22,8 @@ const replaceDynamicPlaceholders = (templateDesign, customerData) => {
 
             text = text.replace(/\{MUSTERI_ADI\}/g, musteriAdi)
                 .replace(/\{URUN_ADI\}/g, urunAdi)
-                .replace(/\{SIPARIS_NO\}/g, siparisNo);
+                .replace(/\{SIPARIS_NO\}/g, siparisNo)
+                .replace(/\{SURVEY_LINK\}/g, `https://cx-inn.app/survey?tid=${customerData.trackingId || 'TEST_ID'}`);
 
             element.props.text = text;
         }
@@ -73,7 +74,7 @@ export const startCampaignDistribution = async (appId, campaignName, templateId,
         const deliveryPromises = targetGroup.map(async (customer) => {
             const trackingId = uuidv4(); // Önemli: Anket dönüşlerini geri eşlemek için eşsiz ID
 
-            const customizedContent = replaceDynamicPlaceholders(templateData.design, customer);
+            const customizedContent = replaceDynamicPlaceholders(templateData.design, { ...customer, trackingId });
 
             const emailDoc = {
                 trackingId: trackingId,
@@ -191,6 +192,22 @@ export const linkSurveyResponseToCustomer = async (appId, trackingId, surveyResu
         await processFeedbackLoop(appId, trackingId, deliveryData, surveyResult);
         // -------------------------------------------------------------------------
 
+        // 5. Analiz Veritabanındaki Orijinal Kaydı 'Yanıtlandı' Olarak İşaretle
+        const analyzedDocRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
+        const analyzedSnap = await getDoc(analyzedDocRef);
+        if (analyzedSnap.exists()) {
+            const interactions = analyzedSnap.data().interactions;
+            const targetId = deliveryData.customerId;
+            const updatedInteractions = interactions.map(i => {
+                const currentId = i.id || i.ID;
+                if (currentId === targetId) {
+                    return { ...i, status: 'Yanıtlandı', surveyResult };
+                }
+                return i;
+            });
+            await updateDoc(analyzedDocRef, { interactions: updatedInteractions });
+        }
+
         console.log(`[Campaign] TrackingID: ${trackingId} için anket yanıtı başarıyla ilişkilendirildi. Müşteri: ${deliveryData.customerEmail}`);
 
         return { success: true, customer: deliveryData.originalData };
@@ -199,6 +216,24 @@ export const linkSurveyResponseToCustomer = async (appId, trackingId, surveyResu
         console.error("Anket ilişkilendirme hatası:", error);
         throw error;
     }
+};
+
+/**
+ * 5. Anket Gönderim Simülasyonu (Testing Helper)
+ * Bu fonksiyon, bir müşterinin mailindeki linke tıkladığını ve anketi doldurduğunu simüle eder.
+ */
+export const simulateSurveySubmission = async (appId, trackingId) => {
+    const scores = [1, 2, 3, 4, 5];
+    const comments = ["Kargo çok geç geldi!", "Harika hizmet, teşekkürler.", "Fiyatlar biraz yüksek.", "Temsilci çok ilgiliydi.", "Ürün beklediğimden kötü çıktı."];
+
+    const randomScore = scores[Math.floor(Math.random() * scores.length)];
+    const randomComment = comments[Math.floor(Math.random() * comments.length)];
+
+    return await linkSurveyResponseToCustomer(appId, trackingId, {
+        csatScore: randomScore,
+        comment: randomComment,
+        submittedAt: new Date().toISOString()
+    });
 };
 
 /**

@@ -316,6 +316,7 @@ const MailDesigner = () => {
                                 <code>{"{MUSTERI_ADI}"}</code>
                                 <code>{"{URUN_ADI}"}</code>
                                 <code>{"{SIPARIS_NO}"}</code>
+                                <code>{"{SURVEY_LINK}"}</code>
                             </div>
                         </div>
                     )}
