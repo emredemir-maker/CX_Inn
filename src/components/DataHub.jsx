@@ -3,6 +3,8 @@ import Papa from 'papaparse';
 import { db } from '../lib/firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { maskPII } from '../utils/piiProcessor';
+import { analyzeAndGroupInteractions, saveAnalyzedDataToFirestore } from '../services/dataAnalysisService';
+import { runGovernanceAudit } from '../services/governanceService';
 
 const DataHub = () => {
     const [data, setData] = useState(null);
@@ -78,19 +80,29 @@ const DataHub = () => {
             // Bu appId projeye veya kullanıcıya göre dinamik olarak değiştirilebilir.
             const appId = "default-app-id";
 
-            const newImportRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'imports'));
-
+            // 1. Orijinal veriyi kaydet (Ham maskelenmiş data)
+            const newImportRef = doc(collection(db, 'artifacts', appId, 'public', 'imports'));
             await setDoc(newImportRef, {
                 uploadedAt: new Date().toISOString(),
                 rowsCount: data.length,
                 data: data
             });
 
+            // 2. AGENTIC ORCHESTRATION: Veriyi Analiz Et (Classifier, Sentiment, Context Agents)
+            // analyzeAndGroupInteractions fonksiyonu bu ajanların görevlerini sırayla yürütür
+            const analyzedDataResult = analyzeAndGroupInteractions(data);
+
+            // 3. Analiz sonucunu Firebase'e kaydet (predictive_csat, is_risk_customer vb. eklenmiş halini)
+            await saveAnalyzedDataToFirestore(appId, analyzedDataResult);
+
+            // 4. GOVERNANCE: Veriler güvenli mi diye LLM-Judge ve PII-Audit çalıştır
+            await runGovernanceAudit(appId, analyzedDataResult.processedData);
+
             setUploadSuccess(true);
             setData(null);
         } catch (error) {
-            console.error("Firestore'a yükleme hatası:", error);
-            alert("Firestore'a yükleme sırasında hata oluştu. Firebase ayarlarınızı (api key vb.) kontrol edin veya Console loglarına bakın.");
+            console.error("Firestore'a veri analizi ve yükleme hatası:", error);
+            alert("Sistem veriyi işlerken bir hatayla karşılaştı. Konsol loglarına bakın.");
         } finally {
             setIsUploading(false);
         }
