@@ -3,6 +3,7 @@ import './index.css';
 import DataHub from './components/DataHub';
 import MailDesigner from './components/MailDesigner';
 import CommunicationHub from './components/CommunicationHub';
+import NpsReport from './components/NpsReport';
 import { listenToSurveyResponses } from './services/dashboardService';
 import { db } from './lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -359,7 +360,11 @@ function App() {
             </div>
           )}
 
-          {activeTab !== 'dashboard' && activeTab !== 'veri-yukleme' && activeTab !== 'iletisim-hub' && activeTab !== 'mail-tasarimcisi' && activeTab !== 'guvenlik-etik' && (
+          {activeTab === 'nps-raporu' && (
+            <NpsReport />
+          )}
+
+          {activeTab !== 'dashboard' && activeTab !== 'veri-yukleme' && activeTab !== 'iletisim-hub' && activeTab !== 'mail-tasarimcisi' && activeTab !== 'guvenlik-etik' && activeTab !== 'nps-raporu' && (
             <div className="page-placeholder animate-fade-in">
               <div style={{ textAlign: 'center', marginTop: '120px', color: 'var(--text-secondary)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '72px', opacity: 0.3, marginBottom: '24px' }}>
