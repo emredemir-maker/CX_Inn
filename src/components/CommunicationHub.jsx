@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { db } from '../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { fetchInboxEmails, generateAIResponseDraft, sendDirectReply } from '../services/communicationService';
 
 const CommunicationHub = () => {
@@ -12,15 +14,31 @@ const CommunicationHub = () => {
     const [piiAlert, setPiiAlert] = useState(false);
 
     useEffect(() => {
-        const loadEmails = async () => {
-            setIsLoading(true);
-            const appId = "default-app-id";
-            const fetched = await fetchInboxEmails(appId);
-            setEmails(fetched);
+        const appId = "default-app-id";
+        const docRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
+
+        const unsubscribe = onSnapshot(docRef, (snap) => {
+            if (snap.exists() && snap.data().interactions) {
+                const allInteractions = snap.data().interactions;
+                // Sadece sorunlu veya mesaj atan kitleyi (CSAT <= 4) inbox'a düşürüyoruz
+                const filtered = allInteractions.filter(i => i.aiAnalysis && i.aiAnalysis.predictive_csat <= 4);
+                setEmails(filtered);
+                setIsLoading(false);
+
+                // Eğer hiçbir mail seçili değilse ilkini seç
+                if (!selectedEmail && filtered.length > 0) {
+                    handleSelectEmail(filtered[0]);
+                }
+            } else {
+                setEmails([]);
+                setIsLoading(false);
+            }
+        }, (error) => {
+            console.error("Inbox real-time dinleme hatası:", error);
             setIsLoading(false);
-            if (fetched.length > 0) handleSelectEmail(fetched[0]);
-        };
-        loadEmails();
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const handleSelectEmail = (email) => {
