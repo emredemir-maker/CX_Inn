@@ -101,6 +101,12 @@ export const analyzeAndGroupInteractions = (interactions) => {
         // Kriterler: Metinde derin memnuniyetsizlik (< -0.4) VEYA Tahmini CSAT'ın 1 veya 2 olması
         const is_risk_customer = overall_sentiment <= -0.4 || predictive_csat <= 2;
 
+        // --- XAI (Explainable AI): Kanıt Toplama ---
+        const xaiEvidence = [];
+        if (posHits > 0) xaiEvidence.push(`${posHits} pozitif anahtar kelime tespit edildi`);
+        if (negHits > 0) xaiEvidence.push(`${negHits} negatif anahtar kelime tespit edildi`);
+        if (dominantAspect !== 'Genel İletişim') xaiEvidence.push(`'${dominantAspect}' konusuyla ilgili spesifik terimler saptandı`);
+
         return {
             ...interaction,
             aiAnalysis: {
@@ -108,7 +114,8 @@ export const analyzeAndGroupInteractions = (interactions) => {
                 overall_sentiment: parseFloat(overall_sentiment.toFixed(2)),
                 predictive_csat,
                 is_risk_customer,
-                primary_aspect: dominantAspect
+                primary_aspect: dominantAspect,
+                xai_evidence: xaiEvidence.join(', ') || 'Metin yoğunluğu ve duygu polarizasyonu baz alındı.'
             }
         };
     });

@@ -25,35 +25,57 @@ export const fetchInboxEmails = async (appId) => {
 
 /**
  * AI Agentic Süreci: Gelen mesaja (aspect ve sentiment'e göre) taslak yanıt hazırlar.
+ * Ayrıca LLM-Judge denetimi için bir XAI (Açıklanabilirlik) kanıtı sunar.
  */
 export const generateAIResponseDraft = (interaction) => {
     const aiDetails = interaction.aiAnalysis;
     const aspect = aiDetails?.primary_aspect || 'Genel';
     const csat = aiDetails?.predictive_csat || 3;
     const name = interaction.Musteri || interaction.İsim || 'Değerli Müşterimiz';
+    const textStr = (interaction.Mesaj || interaction.Text || interaction.Comment || '').toLowerCase();
 
     let baseApo = csat <= 2 ? `Yaşadığınız mağduriyet için çok üzgünüz.` : `Geri bildiriminiz için teşekkür ederiz.`;
 
     let solution = '';
+    let xaiEvidence = `Sistem bu müşteriyi CSAT ${csat} ve '${aspect}' kategorisinde etiketledi. `;
+
+    // XAI (Explainable AI) Mantığı: Metindeki tetikleyici kelimeleri bul ve açıkla
+    const keywordsFound = [];
+
     switch (aspect.toLowerCase()) {
         case 'lojistik ve kargo':
             solution = `Kargo sürecinizdeki gecikmenin farkındayız. Dağıtım merkeziyle iletişime geçildi ve ürününüzün teslimatı için aciliyet talebi oluşturuldu.`;
+            ['kargo', 'teslimat', 'gecikti', 'gelmedi', 'hızlı'].forEach(kw => { if (textStr.includes(kw)) keywordsFound.push(kw); });
             break;
         case 'fiyatlandırma':
             solution = `Fiyatlandırma ile ilgili şikayetinizi inceledik. Mağduriyetinizi gidermek adına sonraki alışverişinizde geçerli %15 indirim kodunuz hesabınıza tanımlanmıştır.`;
+            ['pahalı', 'fiyat', 'fatura', 'ödeme', 'indirim'].forEach(kw => { if (textStr.includes(kw)) keywordsFound.push(kw); });
             break;
         case 'ürün kalitesi':
             solution = `Ürünümüzde karşılaştığınız sorundan dolayı telafi prosedürümüzü başlatıyoruz. Ürünü ücretsiz iade koduyla geri gönderebilirsiniz, derhal yenisiyle değişimi sağlanacaktır.`;
+            ['bozuk', 'kırık', 'kalitesiz', 'harika', 'kalite'].forEach(kw => { if (textStr.includes(kw)) keywordsFound.push(kw); });
             break;
         case 'müşteri hizmetleri':
             solution = `Daha önceki destek talebinizdeki olumsuz deneyimi inceledik. Temsilcilerimizle ilgili iç denetim süreci başlatılmıştır. Konuyu bizzat ekibimle takip edeceğim.`;
+            ['temsilci', 'müşteri hizmetleri', 'ilgisiz', 'kaba', 'cevap'].forEach(kw => { if (textStr.includes(kw)) keywordsFound.push(kw); });
             break;
         default:
             solution = `Belirttiğiniz konuyu ilgili departmanımıza ilettik. En kısa sürede kalıcı bir çözümle tarafınıza döneceğiz.`;
             break;
     }
 
-    return `Merhaba ${name},\n\n${baseApo} ${solution}\n\nSorununuz hızlıca çözülene kadar sizinle bizzat ilgileneceğimi bilmenizi isterim.\n\nSaygılarımla,\nCX-Inn Yöneticisi`;
+    if (keywordsFound.length > 0) {
+        xaiEvidence += `Kanıt: Müşteri metninde şu anahtar kelimeleri kullandı: [${keywordsFound.join(', ')}].`;
+    } else {
+        xaiEvidence += `Kanıt: Kelime yoğunluğu veya duygu polarizasyonu (Sentiment) baz alınarak genel kanıya varıldı.`;
+    }
+
+    const draftText = `Merhaba ${name},\n\n${baseApo} ${solution}\n\nSorununuz hızlıca çözülene kadar sizinle bizzat ilgileneceğimi bilmenizi isterim.\n\nSaygılarımla,\nCX-Inn Yöneticisi`;
+
+    return {
+        draftText,
+        xaiEvidence
+    };
 };
 
 /**

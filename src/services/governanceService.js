@@ -5,12 +5,23 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
  * 1. PII (Personally Identifiable Information) Tarayıcı Düzenli İfadeleri (Regex)
  * Metinlerde TC Kimlik, Kredi Kartı, Telefon numarası ve E-posta adresi arar.
  */
-const piiRegexList = [
+export const piiRegexList = [
     { type: 'TCKN / SSN', regex: /\b[1-9][0-9]{10}\b/g },
     { type: 'Kredi Kartı', regex: /\b(?:\d[ -]*?){13,16}\b/g },
     { type: 'Telefon (Türkiye)', regex: /\b0?5[0-9]{2}[\s-]?[0-9]{3}[\s-]?[0-9]{2}[\s-]?[0-9]{2}\b/g },
     { type: 'E-posta', regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g }
 ];
+
+export const logSecurityViolation = async (appId, ruleType, offendingText) => {
+    try {
+        const auditRef = doc(db, 'artifacts', appId, 'public', 'governance_audit_latest');
+        // This is a naive increment for the violation. Ideally we'd use a transaction or merge.
+        // For simplicity, we just log it out. In a real scenario we'd getDoc, update, save.
+        console.error(`[SECURITY ALERT] PII Violation detected in draft response: ${ruleType}`);
+    } catch (e) {
+        console.error('Failed to log violation', e);
+    }
+}
 
 /**
  * 2. LLM-JUDGE & PII AUDIT (Güvenlik ve Etik Denetim Motoru)

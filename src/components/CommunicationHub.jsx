@@ -8,6 +8,9 @@ const CommunicationHub = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [sending, setSending] = useState(false);
 
+    const [xaiEvidence, setXaiEvidence] = useState('');
+    const [piiAlert, setPiiAlert] = useState(false);
+
     useEffect(() => {
         const loadEmails = async () => {
             setIsLoading(true);
@@ -22,11 +25,31 @@ const CommunicationHub = () => {
 
     const handleSelectEmail = (email) => {
         setSelectedEmail(email);
-        setDraft(generateAIResponseDraft(email));
+        const { draftText, xaiEvidence: draftXai } = generateAIResponseDraft(email);
+        setDraft(draftText);
+        setXaiEvidence(draftXai);
+        setPiiAlert(false);
     };
 
     const handleSendDraft = async () => {
         if (!selectedEmail) return;
+
+        // --- PII GUARD: Yanıt içinde maskelenmemiş veri var mı kontrol et ---
+        const { piiRegexList, logSecurityViolation } = await import('../services/governanceService');
+        let hasViolation = false;
+
+        piiRegexList.forEach(rule => {
+            if (rule.regex.test(draft)) {
+                hasViolation = true;
+                logSecurityViolation("default-app-id", rule.type, draft);
+            }
+        });
+
+        if (hasViolation) {
+            setPiiAlert(true);
+            return; // İşlemi durdur
+        }
+
         setSending(true);
         const appId = "default-app-id";
         try {
@@ -40,6 +63,7 @@ const CommunicationHub = () => {
             } else {
                 setSelectedEmail(null);
                 setDraft('');
+                setXaiEvidence('');
             }
         } catch (error) {
             alert('Yanıt gönderilirken hata oluştu.');
@@ -111,19 +135,38 @@ const CommunicationHub = () => {
 
                             {/* AI Çözüm Taslağı */}
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                                    <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>auto_awesome</span>
-                                    <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>AI Agent Çözüm Taslağı</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>auto_awesome</span>
+                                        <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>AI Agent Çözüm Taslağı (XAI Enabled)</span>
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', background: 'rgba(63,30,174,0.05)', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>info</span>
+                                        {xaiEvidence || selectedEmail.aiAnalysis?.xai_evidence}
+                                    </div>
                                 </div>
+
+                                {piiAlert && (
+                                    <div style={{ backgroundColor: 'rgba(255,59,48,0.1)', border: '1px solid #ff3b30', borderRadius: '8px', padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: '#ff3b30', animation: 'shake 0.5s' }}>
+                                        <span className="material-symbols-outlined">security_update_warning</span>
+                                        <div style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                                            GÜVENLİK ENGELİ: Taslak yanıt içerisinde maskelenmemiş kişisel veri (PII) tespit edildi! Lütfen metni temizleyin.
+                                        </div>
+                                    </div>
+                                )}
+
                                 <textarea
                                     value={draft}
-                                    onChange={(e) => setDraft(e.target.value)}
+                                    onChange={(e) => {
+                                        setDraft(e.target.value);
+                                        setPiiAlert(false);
+                                    }}
                                     style={{
                                         flex: 1,
                                         width: '100%',
                                         padding: '16px',
                                         borderRadius: '8px',
-                                        border: '1px solid var(--border-color)',
+                                        border: piiAlert ? '2px solid #ff3b30' : '1px solid var(--border-color)',
                                         backgroundColor: 'var(--body-bg)',
                                         color: 'var(--text-main)',
                                         fontFamily: 'inherit',
@@ -134,10 +177,15 @@ const CommunicationHub = () => {
                                     }}
                                 />
                                 <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
-                                    <button className="btn-secondary" onClick={() => setDraft(generateAIResponseDraft(selectedEmail))}>
+                                    <button className="btn-secondary" onClick={() => {
+                                        const { draftText, xaiEvidence: dXai } = generateAIResponseDraft(selectedEmail);
+                                        setDraft(draftText);
+                                        setXaiEvidence(dXai);
+                                        setPiiAlert(false);
+                                    }}>
                                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span> Taslağı Yenile
                                     </button>
-                                    <button className="btn-primary" onClick={handleSendDraft} disabled={sending}>
+                                    <button className="btn-primary" onClick={handleSendDraft} disabled={sending} style={{ backgroundColor: piiAlert ? '#ccc' : '' }}>
                                         {sending ? 'Gönderiliyor...' : (
                                             <><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>send</span> Yanıtla ve Kapat</>
                                         )}
