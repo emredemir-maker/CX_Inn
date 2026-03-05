@@ -25,6 +25,7 @@ function App() {
   const [dashboardData, setDashboardData] = useState({ totalResponses: 0, averageErrorMargin: 0, criticalAlerts: [] });
   const [governanceData, setGovernanceData] = useState(null);
   const [segments, setSegments] = useState(null);
+  const [localAnalyzedData, setLocalAnalyzedData] = useState(null);
   const [latestTemplateId, setLatestTemplateId] = useState(null);
   const [isDispatching, setIsDispatching] = useState(false);
 
@@ -56,7 +57,7 @@ function App() {
   // Governance & Etik raporlarını anlık dinleme
   useEffect(() => {
     const appId = "default-app-id";
-    const docRef = doc(db, 'artifacts', appId, 'public', 'governance_audit_latest');
+    const docRef = doc(db, 'artifacts', appId, 'governance_audit', 'latest');
 
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -70,23 +71,66 @@ function App() {
   // Analiz edilmiş etkileşimleri dinle ve anlık Segmentleri oluştur
   useEffect(() => {
     const appId = "default-app-id";
-    const docRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
+    const docRef = doc(db, 'artifacts', appId, 'analyzed_interactions', 'latest');
 
     const unsubscribe = onSnapshot(docRef, (snap) => {
       if (snap.exists() && snap.data().interactions) {
         const segmented = segmentCustomers(snap.data().interactions);
         setSegments(segmented);
+        setLocalAnalyzedData(snap.data());
+      } else if (localAnalyzedData && localAnalyzedData.interactions) {
+        // If Firestore snap is empty or doesn't exist, use locally analyzed data
+        const segmented = segmentCustomers(localAnalyzedData.interactions);
+        setSegments(segmented);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [localAnalyzedData]); // Add localAnalyzedData to dependency array to react to local changes
+
+  // DEMO MODU: Yerel analiz tamamlandığında state'i güncelle
+  const handleLocalAnalysis = (analyzedResult) => {
+    console.log("[App] Yerel analiz datası alındı, Dashboard güncelleniyor.");
+    const segmented = segmentCustomers(analyzedResult.rawAnalyzed);
+    setSegments(segmented);
+    setLocalAnalyzedData({
+      interactions: analyzedResult.rawAnalyzed,
+      globalMetrics: analyzedResult.globalMetrics,
+      rootCauseImpact: analyzedResult.impactAnalysis
+    });
+
+    // Dashboard ve Governance için demo verisi oluştur
+    setDashboardData({
+      totalResponses: 0,
+      averageErrorMargin: 0.2, // Demo sabit sapma
+      requiresSystemCalibration: false,
+      criticalAlerts: analyzedResult.rawAnalyzed
+        .filter(i => i.aiAnalysis.predictive_csat <= 2)
+        .slice(0, 3)
+        .map(i => ({
+          id: i.Islem_ID || Math.random().toString(),
+          customerEmail: i.Email,
+          originalData: i,
+          score: `Tahmin: ${i.aiAnalysis.predictive_csat}`,
+          reason: i.aiAnalysis.reasoning,
+          respondedAt: new Date(),
+          recommendedAction: "Müşteriyi geri kazanmak için kupon tanımlayın."
+        }))
+    });
+
+    setGovernanceData({
+      complianceScore: 98.5,
+      piiWatch: { violationsFound: 0 },
+      ethicsWatch: { violationsFound: 0 },
+      llmJudge: { accuracyScore: 96, biasDetected: 0 }
+    });
+  };
 
   // En son kaydedilen şablonu bul (Kampanya gönderimi için)
   useEffect(() => {
     const fetchLatestTemplate = async () => {
       const appId = "default-app-id";
-      const q = query(collection(db, 'artifacts', appId, 'public', 'templates'), limit(1));
+      const q = query(collection(db, 'artifacts', appId, 'templates'), limit(1));
       const snap = await getDocs(q);
       if (!snap.empty) {
         setLatestTemplateId(snap.docs[0].id);
@@ -335,11 +379,11 @@ function App() {
           )}
 
           {activeTab === 'veri-yukleme' && (
-            <DataHub />
+            <DataHub onAnalysisComplete={handleLocalAnalysis} />
           )}
 
           {activeTab === 'iletisim-hub' && (
-            <CommunicationHub />
+            <CommunicationHub localData={localAnalyzedData} />
           )}
 
           {activeTab === 'mail-tasarimcisi' && (

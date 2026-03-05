@@ -10,7 +10,7 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 export const listenToSurveyResponses = (appId, onUpdateCallback) => {
     // Tüm süreç merkezi olan closed_loop_stats'i dinliyoruz
     const closedLoopQuery = query(
-        collection(db, 'artifacts', appId, 'public', 'data', 'closed_loop_stats'),
+        collection(db, 'artifacts', appId, 'closed_loop_stats'),
         // orderBy('processedAt', 'desc') // Ensure index is created if uncommented
     );
 

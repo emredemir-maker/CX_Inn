@@ -63,7 +63,7 @@ const MailDesigner = () => {
             const appId = "default-app-id";
             const templateId = uuidv4();
 
-            const newTemplateRef = doc(db, 'artifacts', appId, 'public', 'templates', templateId);
+            const newTemplateRef = doc(db, 'artifacts', appId, 'templates', templateId);
 
             const jsonOutput = {
                 id: templateId,

@@ -7,8 +7,8 @@ import { collection, doc, onSnapshot } from 'firebase/firestore';
  * 2. Closed Loop İstatistikleri: Gap Analysis (Gerçek vs Tahmin)
  */
 export const listenToNpsReportData = (appId, onUpdateCallback) => {
-    const analyzedDocRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
-    const closedLoopCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'closed_loop_stats');
+    const analyzedDocRef = doc(db, 'artifacts', appId, 'analyzed_interactions', 'latest');
+    const closedLoopCollectionRef = collection(db, 'artifacts', appId, 'closed_loop_stats');
 
     let latestAnalyzedData = null;
     let latestClosedLoopData = [];

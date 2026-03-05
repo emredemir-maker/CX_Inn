@@ -32,8 +32,8 @@ export const analyzeAndGroupInteractions = (interactions) => {
     // ----------------------------------------------------------------------
     const analyzed = interactions.map((interaction, index) => {
         // Her etkileşimin içeriğini (Mesaj/Not) düz ve küçük harfli metne çeviriyoruz.
-        const originalText = (interaction.Mesaj || interaction.Mesaj_Icerigi || interaction.Comment || interaction.Feedback || interaction.Text || interaction.Notlar || "").toLowerCase();
-        const customerId = interaction.CustomerId || interaction.MusteriId || interaction.Email || `cust_${index}`;
+        const originalText = (interaction.Icerik || interaction.Mesaj || interaction.Mesaj_Icerigi || interaction.Comment || interaction.Feedback || interaction.Text || interaction.Notlar || "").toLowerCase();
+        const customerId = interaction.CustomerId || interaction.MusteriId || interaction.Email || interaction.Islem_ID || `cust_${index}`;
 
         // Metin yoksa varsayılan dönüş
         if (!originalText) {
@@ -199,7 +199,7 @@ export const analyzeAndGroupInteractions = (interactions) => {
  */
 export const saveAnalyzedDataToFirestore = async (appId, analyzedResult) => {
     try {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
+        const docRef = doc(db, 'artifacts', appId, 'analyzed_interactions', 'latest');
 
         // Müşterilerin asıl iletişim logları + onlara yapıştırılmış ABSA/CSAT etiketleri
         // Cihaz şişmesin diye 'impactAnalysis' gibi zeka çıktılarını yukarı çıkarıyoruz

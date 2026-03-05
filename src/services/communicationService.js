@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export const fetchInboxEmails = async (appId) => {
     try {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
+        const docRef = doc(db, 'artifacts', appId, 'analyzed_interactions', 'latest');
         const snap = await getDoc(docRef);
 
         if (snap.exists() && snap.data().interactions) {
@@ -85,7 +85,7 @@ export const sendDirectReply = async (appId, emailData, replyDraft) => {
     try {
         const trackingId = uuidv4();
         // Odd-segments error'ını önlemek için outbound_logs'u collection olarak kullanıyoruz
-        const replyRef = doc(collection(db, 'artifacts', appId, 'public', 'outbound_logs'), trackingId);
+        const replyRef = doc(collection(db, 'artifacts', appId, 'outbound_logs'), trackingId);
 
         await setDoc(replyRef, {
             trackingId,

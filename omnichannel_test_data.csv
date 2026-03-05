@@ -1,0 +1,16 @@
+Kanal,Musteri_Adi,Email,Islem_ID,Icerik,Sure_Dk,Agent_Ismi
+Call Center,Ahmet Yılmaz,ahmet.yilmaz@example.com,#TR9821,"[Müşteri]: İyi günler, 5 gün önce verdiğim iPhone siparişim hala 'Hazırlanıyor' görünüyor. [Temsilci]: Ahmet Bey, sistemde bir gecikme olmuş, hemen lojistiğe iletiyorum. [Müşteri]: Ama her aradığımda aynısını söylüyorsunuz!",12,Murat K.
+Ticket,Zeynep Kaya,zeynep.kaya@example.com,#TR4412,"Konu: İade Talebi - Eksik Parça. Dyson V15 süpürgemin kutusu yırtık geldi ve içinden koltuk başlığı çıkmadı. Kutunun fotoğraflarını ekliyorum, acil değişim rica ederim.",2,Sistem
+Chat,Mehmet Öz,mehmet.oz@example.com,#TR1102,"[14:20] Mehmet: Selam, sepete eklediğim Samsung telefonun fiyatı ödeme ekranında 2 bin lira arttı. [14:22] Asistan: Mehmet Bey, kampanya süresi dolmuş olabilir. [14:23] Mehmet: Hayır, bannerda hala devam ediyor yazıyor!",5,AI-Bot
+Call Center,Ayşe Demir,ayse.demir@example.com,#TR5567,"[Müşteri]: Bu benim 3. kez iade sorunum. MacBook ekranında ölü piksel var diyorum, servis sorun yok deyip geri gönderiyor. [Temsilci]: Ayşe Hanım, teknik raporu tekrar inceleyelim. [Müşteri]: Artık incelemeyin, paramı geri verin!",18,Selin B.
+Chat,Caner Ak,caner.ak@example.com,#TR3321,"[10:05] Caner: Merhaba, ürünü iade etmek istiyorum. [10:06] Asistan: Sebebini belirtebilir misiniz? [10:06] Caner: Kötü bir deneyimdi.",2,AI-Bot
+Ticket,Murat Can,murat.can@example.com,#TR7744,"Şikayet: Mağazadaki temsilciniz bugün bana karşı çok kaba davrandı. 'İşine gelirse al' gibi bir üslup kullandı. Mağaza kodu: IST-04. Gerekli uyarının yapılmasını bekliyorum.",5,Sistem
+Call Center,Elif Şahin,elif.sahin@example.com,#TR2290,"[Müşteri]: KitchenAid mikserim teslim edildi görünüyor ama kapıma gelen kimse olmadı. [Temsilci]: Elif Hanım, kurye arkadaşımız adreste bulamamış olabilir mi? [Müşteri]: Bütün gün evdeydim, yalan söylüyorlar!",15,Hakan T.
+Chat,Deniz Yıldız,deniz.yildiz@example.com,#TR6611,"[11:00] Deniz: Nike ayakkabılar ulaştı, çok beğendim. Teşekkürler!",1,AI-Bot
+Ticket,Sibel Işık,sibel.isik@example.com,#TR1234,"Arıza Bildirimi: Kahve makinesi ilk kullanımda su sızdırmaya başladı. 2. kez bozuk ürünle karşılaşıyorum. Lütfen bu sefer sağlam bir cihaz gönderin.",3,Sistem
+Call Center,Engin Koç,engin.koc@example.com,#TR8765,"[Müşteri]: Scooter'ımın frenleri tutmuyor, yokuş aşağı kaza yapıyordum az kalsın! [Temsilci]: Engin Bey, güvenliğiniz için ürünü hemen kullanmayı bırakın. [Müşteri]: Şaka mı yapıyorsunuz? Ürünü satarken böyle demiyordunuz.",22,Murat K.
+Chat,Fatma Nur,fatma.nur@example.com,#TR4321,"[15:30] Fatma: Faturam hala gelmedi. [15:31] Asistan: Lütfen bekleyin kontrol ediyorum.",4,AI-Bot
+Ticket,Burak Er,burak.er@example.com,#TR5599,"Mobilya kurulumu için ekip gelecekti ama kimse randevu saatinde gelmedi. Müşteri hizmetlerine de ulaşamıyorum. Planlarım alt üst oldu.",6,Sistem
+Call Center,Levent Gök,levent.gok@example.com,#TR7788,"[Müşteri]: Her şey harikaydı, projeksiyon cihazı kurulumuna gelen arkadaşlar çok profesyoneldi. [Temsilci]: Teşekkürler Levent Bey!",8,Engin S.
+Chat,Selin Bulut,selin.bulut@example.com,#TR8876,"[09:12] Selin: Kulaklıklar süper, teşekkürler.",2,AI-Bot
+Ticket,Hakan Mert,hakan.mert@example.com,#TR0909,"Üyelik iptali istiyorum. Site çok yavaş ve sürekli hata veriyor. Hiç memnun kalmadım.",4,Sistem

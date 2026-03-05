@@ -39,7 +39,7 @@ const replaceDynamicPlaceholders = (templateDesign, customerData) => {
 export const startCampaignDistribution = async (appId, campaignName, templateId, targetGroup) => {
     try {
         // A. Firestore'dan ilgili mail şablonunu çek
-        const templateRef = doc(db, 'artifacts', appId, 'public', 'templates', templateId);
+        const templateRef = doc(db, 'artifacts', appId, 'templates', templateId);
         const templateSnap = await getDoc(templateRef);
 
         if (!templateSnap.exists()) {
@@ -50,7 +50,7 @@ export const startCampaignDistribution = async (appId, campaignName, templateId,
         const campaignId = uuidv4();
 
         // B. Ana Kampanya Dökümanını Oluştur
-        const campaignRef = doc(db, 'artifacts', appId, 'public', 'campaigns', campaignId);
+        const campaignRef = doc(db, 'artifacts', appId, 'campaigns', campaignId);
         await setDoc(campaignRef, {
             id: campaignId,
             name: campaignName,
@@ -68,8 +68,8 @@ export const startCampaignDistribution = async (appId, campaignName, templateId,
         console.log(`[Campaign] Kampanya oluşturuldu: ${campaignId}. Toplam hedef: ${targetGroup.length}`);
 
         // C. Her müşteri için benzersiz tracking ID ile gönderim kuyruğu (queue) oluştur
-        // User Request: /public/data/outbound_logs altına 'Hazırlanıyor' statüsüyle yaz.
-        const outboundLogsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'outbound_logs');
+        // User Request: /outbound_logs altına 'Hazırlanıyor' statüsüyle yaz.
+        const outboundLogsCollection = collection(db, 'artifacts', appId, 'outbound_logs');
 
         const deliveryPromises = targetGroup.map(async (customer) => {
             const trackingId = uuidv4(); // Önemli: Anket dönüşlerini geri eşlemek için eşsiz ID
@@ -170,7 +170,7 @@ import { processFeedbackLoop } from './feedbackLoopService';
  */
 export const linkSurveyResponseToCustomer = async (appId, trackingId, surveyResult) => {
     try {
-        const deliveryRef = doc(db, 'artifacts', appId, 'public', 'data', 'outbound_logs', trackingId);
+        const deliveryRef = doc(db, 'artifacts', appId, 'outbound_logs', trackingId);
 
         // Gönderilmiş olan spesifik e-posta verisini çek
         const deliverySnap = await getDoc(deliveryRef);
@@ -193,7 +193,7 @@ export const linkSurveyResponseToCustomer = async (appId, trackingId, surveyResu
         // -------------------------------------------------------------------------
 
         // 5. Analiz Veritabanındaki Orijinal Kaydı 'Yanıtlandı' Olarak İşaretle
-        const analyzedDocRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
+        const analyzedDocRef = doc(db, 'artifacts', appId, 'analyzed_interactions', 'latest');
         const analyzedSnap = await getDoc(analyzedDocRef);
         if (analyzedSnap.exists()) {
             const interactions = analyzedSnap.data().interactions;

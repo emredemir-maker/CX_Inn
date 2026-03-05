@@ -6,7 +6,7 @@ import { maskPII } from '../utils/piiProcessor';
 import { analyzeAndGroupInteractions, saveAnalyzedDataToFirestore } from '../services/dataAnalysisService';
 import { runGovernanceAudit } from '../services/governanceService';
 
-const DataHub = () => {
+const DataHub = ({ onAnalysisComplete }) => {
     const [data, setData] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -80,8 +80,23 @@ const DataHub = () => {
             // Bu appId projeye veya kullanıcıya göre dinamik olarak değiştirilebilir.
             const appId = "default-app-id";
 
+            // --- FIREBASE CONFIG CHECK ---
+            if (db.app.options.projectId === "your-project-id") {
+                console.warn("[CX-Inn] Firebase projesi yapılandırılmamış. Veriler sadece yerel olarak analiz edilecek.");
+                // Demo modunda devam etmesi için analiz yapıp state güncelleyelim
+                const analyzedDataResult = analyzeAndGroupInteractions(data);
+                if (onAnalysisComplete) {
+                    onAnalysisComplete(analyzedDataResult);
+                }
+                alert("Firebase projesi bağlı değil! Veriler buluta kaydedilmedi ancak yerel analiz tamamlandı. (Demo Modu)");
+                setUploadSuccess(true);
+                setData(null);
+                setIsUploading(false);
+                return;
+            }
+
             // 1. Orijinal veriyi kaydet (Ham maskelenmiş data)
-            const newImportRef = doc(collection(db, 'artifacts', appId, 'public', 'imports'));
+            const newImportRef = doc(collection(db, 'artifacts', appId, 'imports'));
             await setDoc(newImportRef, {
                 uploadedAt: new Date().toISOString(),
                 rowsCount: data.length,

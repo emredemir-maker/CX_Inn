@@ -37,7 +37,7 @@ export const processFeedbackLoop = async (appId, trackingId, deliveryData, surve
         const alertReason = surveyResult.feedback || surveyResult.comment || "Belirtilmedi";
 
         // 3. CLOSED LOOP STATS RAPORLAMASI (Firestore Kaydı)
-        const closedLoopRef = doc(db, 'artifacts', appId, 'public', 'data', 'closed_loop_stats', trackingId);
+        const closedLoopRef = doc(db, 'artifacts', appId, 'closed_loop_stats', trackingId);
 
         const record = {
             trackingId,

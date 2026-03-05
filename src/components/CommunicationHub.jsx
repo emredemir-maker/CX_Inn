@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { fetchInboxEmails, generateAIResponseDraft, sendDirectReply } from '../services/communicationService';
 
-const CommunicationHub = () => {
+const CommunicationHub = ({ localData }) => {
     const [emails, setEmails] = useState([]);
     const [selectedEmail, setSelectedEmail] = useState(null);
     const [draft, setDraft] = useState('');
@@ -15,17 +15,14 @@ const CommunicationHub = () => {
 
     useEffect(() => {
         const appId = "default-app-id";
-        const docRef = doc(db, 'artifacts', appId, 'public', 'analyzed_interactions');
+        const docRef = doc(db, 'artifacts', appId, 'analyzed_interactions', 'latest');
 
-        const unsubscribe = onSnapshot(docRef, (snap) => {
-            if (snap.exists() && snap.data().interactions) {
-                const allInteractions = snap.data().interactions;
-                // Sadece sorunlu veya mesaj atan kitleyi (CSAT <= 4) inbox'a düşürüyoruz
+        const updateEmails = (data) => {
+            if (data && data.interactions) {
+                const allInteractions = data.interactions;
                 const filtered = allInteractions.filter(i => i.aiAnalysis && i.aiAnalysis.predictive_csat <= 4);
                 setEmails(filtered);
                 setIsLoading(false);
-
-                // Eğer hiçbir mail seçili değilse ilkini seç
                 if (!selectedEmail && filtered.length > 0) {
                     handleSelectEmail(filtered[0]);
                 }
@@ -33,13 +30,27 @@ const CommunicationHub = () => {
                 setEmails([]);
                 setIsLoading(false);
             }
+        };
+
+        const unsubscribe = onSnapshot(docRef, (snap) => {
+            if (snap.exists()) {
+                updateEmails(snap.data());
+            } else if (localData) {
+                updateEmails(localData);
+            } else {
+                setIsLoading(false);
+            }
         }, (error) => {
-            console.error("Inbox real-time dinleme hatası:", error);
-            setIsLoading(false);
+            console.warn("CommunicationHub: Firestore'a bağlanılamadı, yerel veri kullanılıyor olabilir.");
+            if (localData) {
+                updateEmails(localData);
+            } else {
+                setIsLoading(false);
+            }
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [localData]);
 
     const handleSelectEmail = (email) => {
         setSelectedEmail(email);
