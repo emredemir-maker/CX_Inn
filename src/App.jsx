@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './index.css';
 import DataHub from './components/DataHub';
 import MailDesigner from './components/MailDesigner';
+import CommunicationHub from './components/CommunicationHub';
 import { listenToSurveyResponses } from './services/dashboardService';
 import { db } from './lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -270,6 +271,10 @@ function App() {
             <DataHub />
           )}
 
+          {activeTab === 'iletisim-hub' && (
+            <CommunicationHub />
+          )}
+
           {activeTab === 'mail-tasarimcisi' && (
             <MailDesigner />
           )}
@@ -354,7 +359,7 @@ function App() {
             </div>
           )}
 
-          {activeTab !== 'dashboard' && activeTab !== 'veri-yukleme' && activeTab !== 'mail-tasarimcisi' && activeTab !== 'guvenlik-etik' && (
+          {activeTab !== 'dashboard' && activeTab !== 'veri-yukleme' && activeTab !== 'iletisim-hub' && activeTab !== 'mail-tasarimcisi' && activeTab !== 'guvenlik-etik' && (
             <div className="page-placeholder animate-fade-in">
               <div style={{ textAlign: 'center', marginTop: '120px', color: 'var(--text-secondary)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '72px', opacity: 0.3, marginBottom: '24px' }}>
