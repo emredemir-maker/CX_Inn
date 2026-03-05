@@ -67,7 +67,9 @@ export const startCampaignDistribution = async (appId, campaignName, templateId,
         console.log(`[Campaign] Kampanya oluşturuldu: ${campaignId}. Toplam hedef: ${targetGroup.length}`);
 
         // C. Her müşteri için benzersiz tracking ID ile gönderim kuyruğu (queue) oluştur
-        const emailsCollection = collection(campaignRef, 'deliveries');
+        // User Request: /public/data/outbound_logs altına 'Hazırlanıyor' statüsüyle yaz.
+        const outboundLogsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'outbound_logs');
+
         const deliveryPromises = targetGroup.map(async (customer) => {
             const trackingId = uuidv4(); // Önemli: Anket dönüşlerini geri eşlemek için eşsiz ID
 
@@ -75,6 +77,7 @@ export const startCampaignDistribution = async (appId, campaignName, templateId,
 
             const emailDoc = {
                 trackingId: trackingId,
+                campaignId: campaignId,
                 customerId: customer.id || customer.ID || uuidv4(),
                 customerEmail: customer.Email || customer.email || customer.Eposta || 'unknown@example.com',
                 customizedDesign: customizedContent, // Sadece bu müşteriye özel oluşturulmuş mail DOM/JSON'u
@@ -84,7 +87,8 @@ export const startCampaignDistribution = async (appId, campaignName, templateId,
                 errorDetails: null
             };
 
-            const newDocRef = doc(emailsCollection, trackingId);
+            // Log kaydını outbounds hedefine yaz
+            const newDocRef = doc(outboundLogsCollection, trackingId);
             await setDoc(newDocRef, emailDoc);
 
             return { trackingId, docRef: newDocRef, customerEmail: emailDoc.customerEmail };
@@ -161,9 +165,9 @@ const simulateEmailSending = async (campaignRef, queuedEmails, totalCount) => {
  * Kullanıcı maildeki butona tıkladığında URL'de ?trackingId=XYZ olacaktır.
  * Anket tamamlandığında bu trackingId kullanılarak Müşteri profili güncellenir.
  */
-export const linkSurveyResponseToCustomer = async (appId, campaignId, trackingId, surveyResult) => {
+export const linkSurveyResponseToCustomer = async (appId, trackingId, surveyResult) => {
     try {
-        const deliveryRef = doc(db, 'artifacts', appId, 'public', 'campaigns', campaignId, 'deliveries', trackingId);
+        const deliveryRef = doc(db, 'artifacts', appId, 'public', 'data', 'outbound_logs', trackingId);
 
         // Gönderilmiş olan spesifik e-posta verisini çek
         const deliverySnap = await getDoc(deliveryRef);
@@ -177,7 +181,7 @@ export const linkSurveyResponseToCustomer = async (appId, campaignId, trackingId
         // Yanıtı sisteme kaydet ve müşterinin statüsünü 'Kurtarıldı' vb. yap
         await updateDoc(deliveryRef, {
             surveyCompleted: true,
-            surveyResponse: surveyResult, // { score: 9, npsCategory: 'Promoter', responseTime: '...' }
+            surveyResponse: surveyResult, // { score: 9, csat: 4, comment: 'Teşekkürler', responseTime: '...' }
             respondedAt: serverTimestamp()
         });
 
@@ -190,3 +194,8 @@ export const linkSurveyResponseToCustomer = async (appId, campaignId, trackingId
         throw error;
     }
 };
+
+/**
+ * Kullanıcı isteğine göre dispatchCampaign isimli Alias fonksiyon proxy'si
+ */
+export const dispatchCampaign = startCampaignDistribution;
